@@ -1,0 +1,6 @@
+# general
+*.log
+
+# Rust specifics
+/target
+Cargo.lock
