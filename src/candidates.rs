@@ -1,6 +1,6 @@
 use std::fmt;
 
-#[derive(PartialEq, Eq, Clone, Copy, Ord)]
+#[derive(PartialEq, Eq, Clone, Copy)]
 pub struct Candidates(i16);
 impl Default for Candidates {
 	fn default() -> Self {
@@ -33,6 +33,9 @@ impl Candidates {
 			count += 1;
 		}
 		count
+	}
+	pub fn is_empty(&self) -> bool {
+		self.len() == 0
 	}
 	pub fn iter(&self) -> Iter {
 		Iter { v: *self }
@@ -96,16 +99,11 @@ impl fmt::Debug for Candidates {
 }
 impl From<char> for Candidates {
 	fn from(v: char) -> Self {
-		if '1' <= v && v <= '9' {
+		if ('1'..='9').contains(&v) {
 			Self(1 << (v as u8 - b'1'))
 		} else {
 			Default::default()
 		}
-	}
-}
-impl PartialOrd for Candidates {
-	fn partial_cmp(&self, other: &Candidates) -> Option<std::cmp::Ordering> {
-		Some(self.len().cmp(&other.len()))
 	}
 }
 

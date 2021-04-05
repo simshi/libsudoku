@@ -21,18 +21,18 @@ struct Hint {
 impl Ripple {
 	fn must_init() {
 		INIT.call_once(|| unsafe {
-			for row in 0..9 {
-				for col in 0..9 {
+			for (row, line) in PEERS.iter_mut().enumerate() {
+				for (col, cell_peers) in line.iter_mut().enumerate() {
 					let mut k = 0;
 					for i in 0..9 {
 						// same row
 						if i != col {
-							PEERS[row][col][k] = (row as u8, i as u8);
+							cell_peers[k] = (row as u8, i as u8);
 							k += 1;
 						}
 						// same col
 						if i != row {
-							PEERS[row][col][k] = (i as u8, col as u8);
+							cell_peers[k] = (i as u8, col as u8);
 							k += 1;
 						}
 					}
@@ -61,7 +61,7 @@ impl Ripple {
 		let mut i = 0;
 		let mut j = 0;
 		for c in s.chars() {
-			if '1' <= c && c <= '9' || c == '.' {
+			if ('1'..='9').contains(&c) || c == '.' {
 				b.g[i][j] = Candidates::from(c);
 				if j < 8 {
 					j += 1;
@@ -81,11 +81,7 @@ impl Ripple {
 	}
 
 	pub fn solve(s: &str) -> Option<String> {
-		let mut b = if let Some(b) = Self::new(s) {
-			b
-		} else {
-			return None;
-		};
+		let mut b = Self::new(s)?;
 
 		if b.do_solve() {
 			let mut s = String::with_capacity(81);
@@ -103,18 +99,18 @@ impl Ripple {
 	}
 	pub fn solve_arr(puzzle: &mut [[char; 9]; 9]) -> bool {
 		let mut b: Self = Default::default();
-		for i in 0..9 {
-			for j in 0..9 {
-				b.g[i][j] = Candidates::from(puzzle[i][j]);
+		for (p_line, g_line) in puzzle.iter().zip(b.g.iter_mut()) {
+			for (&p_char, g_cell) in p_line.iter().zip(g_line.iter_mut()) {
+				*g_cell = Candidates::from(p_char);
 			}
 		}
 
 		if b.do_solve() {
-			for i in 0..9 {
-				for j in 0..9 {
+			for (p_line, g_line) in puzzle.iter_mut().zip(b.g.iter()) {
+				for (p_char, g_cell) in p_line.iter_mut().zip(g_line.iter()) {
 					// CAUTION: `to_string().chars().nth(0).unwrap()` takes 3000 ns...
-					// puzzle[i][j] = b.g[i][j].to_string().chars().nth(0).unwrap();
-					puzzle[i][j] = b.g[i][j].lucky();
+					// *p_char = g_cell.to_string().chars().nth(0).unwrap();
+					*p_char = g_cell.lucky();
 				}
 			}
 			true
@@ -126,28 +122,14 @@ impl Ripple {
 		// init
 		for i in 0..9 {
 			for j in 0..9 {
-				if self.g[i][j].is_done() {
-					if !Self::ripple(&mut self.g, i, j) {
-						return false;
-					}
+				if self.g[i][j].is_done() && !Self::ripple(&mut self.g, i, j) {
+					return false;
 				}
 			}
 		}
 		// println!("init done:\n{}", self);
 
-		if self.backtrack(&mut self.g.clone()) {
-			// println!(
-			// 	"solved:#try={},#triplex={}\n{}",
-			// 	self.n_try, self.n_triplex, self
-			// );
-			true
-		} else {
-			// println!(
-			// 	"unsovled:#try={},#triplex={}\n{}",
-			// 	self.n_try, self.n_triplex, self
-			// );
-			false
-		}
+		self.backtrack(&mut self.g.clone())
 	}
 
 	fn ripple(g: &mut Board, i: usize, j: usize) -> bool {
@@ -184,15 +166,13 @@ impl Ripple {
 		}
 
 		// try on the current unsolved cell
-		let mut g = g0.clone();
+		let mut g = *g0;
 		for c in ca.iter() {
 			self.n_try += 1;
 			// make a guess
 			g[row][col] = c;
-			if Self::ripple(&mut g, row, col) {
-				if self.backtrack(&mut g) {
-					return true;
-				}
+			if Self::ripple(&mut g, row, col) && self.backtrack(&mut g) {
+				return true;
 			}
 			// rollback
 			g = *g0;
@@ -208,9 +188,9 @@ impl Ripple {
 			first_unsolved_row: 10,
 			first_unsolved_col: 10,
 		};
-		for row in 0..9 {
-			for col in 0..9 {
-				let ca = g[row][col];
+		for (row, line) in g.iter().enumerate() {
+			for (col, cell) in line.iter().enumerate() {
+				let ca = *cell;
 				if ca.len() == 2 {
 					if row < hint.first_unsolved_row {
 						hint.first_unsolved_row = row;
@@ -244,16 +224,17 @@ impl Ripple {
 				// row
 				if i >= hint.first_unsolved_row {
 					let (ca1, ca2, ca3) = (b[i][g], b[i][g + 1], b[i][g + 2]);
-					if !(ca1.is_done() || ca2.is_done() || ca3.is_done()) {
-						if ca1.len() <= 3 && ca2.len() <= 3 && ca3.len() <= 3 {
-							let uc = Candidates::union(ca1, ca2, ca3);
-							if uc.len() == 3 {
-								self.n_triplex += 1;
-								if !Self::triplex_ripple_row(b, i, g, uc)
-									|| !Self::triplex_ripple_row_block(b, i, g, uc)
-								{
-									return false;
-								}
+					if !(ca1.is_done() || ca2.is_done() || ca3.is_done())
+						&& ca1.len() <= 3 && ca2.len() <= 3
+						&& ca3.len() <= 3
+					{
+						let uc = Candidates::union(ca1, ca2, ca3);
+						if uc.len() == 3 {
+							self.n_triplex += 1;
+							if !Self::triplex_ripple_row(b, i, g, uc)
+								|| !Self::triplex_ripple_row_block(b, i, g, uc)
+							{
+								return false;
 							}
 						}
 					}
@@ -262,16 +243,17 @@ impl Ripple {
 				// col
 				if i >= hint.first_unsolved_col {
 					let (ca1, ca2, ca3) = (b[g][i], b[g + 1][i], b[g + 2][i]);
-					if !(ca1.is_done() || ca2.is_done() || ca3.is_done()) {
-						if ca1.len() <= 3 && ca2.len() <= 3 && ca3.len() <= 3 {
-							let uc = Candidates::union(ca1, ca2, ca3);
-							if uc.len() == 3 {
-								self.n_triplex += 1;
-								if !Self::triplex_ripple_col(b, g, i, uc)
-									|| !Self::triplex_ripple_col_block(b, g, i, uc)
-								{
-									return false;
-								}
+					if !(ca1.is_done() || ca2.is_done() || ca3.is_done())
+						&& ca1.len() <= 3 && ca2.len() <= 3
+						&& ca3.len() <= 3
+					{
+						let uc = Candidates::union(ca1, ca2, ca3);
+						if uc.len() == 3 {
+							self.n_triplex += 1;
+							if !Self::triplex_ripple_col(b, g, i, uc)
+								|| !Self::triplex_ripple_col_block(b, g, i, uc)
+							{
+								return false;
 							}
 						}
 					}
@@ -378,7 +360,7 @@ impl fmt::Display for Ripple {
 			.collect::<Vec<_>>();
 		// total width with spaces
 		let total_width = cols_width.iter().sum::<usize>() + 9 + 5;
-		for i in 0..9 {
+		for (i, line) in g.iter().enumerate() {
 			// block line
 			if i % 3 == 0 {
 				f.write_str(" +")?;
@@ -387,21 +369,21 @@ impl fmt::Display for Ripple {
 				}
 				f.write_str("+\n")?;
 			}
-			for j in 0..9 {
+			for (j, col_width) in cols_width.iter().enumerate() {
 				// block bound
 				if j % 3 == 0 {
 					f.write_str(" |")?;
 				}
 				// max width of this col
-				let w = cols_width[j] + 1;
+				let w = col_width + 1;
 				// spaces required for this cell, if len==0, will show as 'X'
-				let spaces = w - std::cmp::max(1, g[i][j].len());
+				let spaces = w - std::cmp::max(1, line[j].len());
 				// leading spaces, put one more as leading
 				for _ in 0..((spaces + 1) / 2) {
 					f.write_str(" ")?
 				}
 				// candidates
-				f.write_str(&g[i][j].to_string())?;
+				f.write_str(&line[j].to_string())?;
 				// tail spaces
 				for _ in 0..(spaces / 2) {
 					f.write_str(" ")?

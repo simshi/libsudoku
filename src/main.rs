@@ -11,21 +11,22 @@ pub fn main() {
 		.arg(
 			Arg::with_name("PUZZLE")
 				.short("p")
+				.long("puzzle")
 				.takes_value(true)
-				.help("Puzzle as string, only '1-9' and '.' are valid, others are ignored"),
+				.required(true)
+				.help("The puzzle, only '1-9' and '.' are valid, others are ignored"),
 		)
 		.get_matches();
 
-	if let Some(puzzle) = args.value_of("PUZZLE") {
-		if let Some(mut game) = Ripple::new(&puzzle) {
-			// println!("solving:\n{}", game.to_string());
-			if game.do_solve() {
-				println!("answer:\n{}", game.to_string());
-			} else {
-				println!("no answer")
-			}
+	let puzzle = args.value_of("PUZZLE").unwrap();
+
+	if let Some(mut game) = Ripple::new(&puzzle) {
+		if game.do_solve() {
+			println!("answer:\n{}", game.to_string());
 		} else {
-			println!("invalid input")
+			println!("no answer")
 		}
+	} else {
+		println!("invalid input")
 	}
 }
