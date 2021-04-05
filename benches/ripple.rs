@@ -4,8 +4,8 @@ extern crate test; // Even in '18 this is needed ... for reasons.
 
 use test::{black_box, Bencher}; // `black_box` prevents `f` from being optimized away.
 
-use shudu::candidates::*;
-use shudu::ripple::*;
+use sudoku::candidates::*;
+use sudoku::ripple::*;
 
 const EASY: &str = "
 9165384..

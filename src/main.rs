@@ -1,6 +1,6 @@
 use clap::{App, AppSettings, Arg};
 
-use shudu::ripple::*;
+use sudoku::ripple::*;
 
 pub fn main() {
 	let args = App::new("Shudu")

@@ -7,11 +7,11 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
-name = "shudu"
+name = "sudoku"
 path = "src/lib.rs"
 
 [[bin]]
-name = "shudu"
+name = "sudoku"
 path = "src/main.rs"
 
 [dependencies]

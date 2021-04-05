@@ -17,7 +17,7 @@ A simple [Sudoku（数独）](https://en.wikipedia.org/wiki/Sudoku) solver in Ru
   9 |   9   |       | 4     |
     +-----------------------+
   ```
-  - Cell: a puzzle board has 81 cells, e.g. cell 3C is '6' in above example.
+  - Cell: a puzzle board has 81 cells, e.g. cell 2D is '6' in above example.
   - Block: a 3x3 cells group, 9 blocks in total.
   - Peers: Cells in the same row, same column and same block.
   - Candidates: possible numbers in a cell, 1-9, if only one possible number(and no conflict with peers) then thise cell is solved.
@@ -39,7 +39,7 @@ A simple [Sudoku（数独）](https://en.wikipedia.org/wiki/Sudoku) solver in Ru
   | 23567    9   2567  | 2378  123678 12368 |   4    257   2357   |
   +---------------------------------------------------------------+
   ```
-  - Candidates: an i16, represents possible numbers (1-9) as a bitmap, e.g. `0` for no candidate is valid; Cell `1B("1236")` represented as `100111b`; The cell is solved while it has only 1 bit(one number) active.
+  - Candidates: an i16, represents possible numbers (1-9) as a bitmap, e.g. `0` for no candidate is valid; Cell `1B("1246")` represented as `101011b`; The cell is solved while it has only 1 bit(one number) active.
   - Puzzle: a puzzle board has 81 cells, so it can be represented in 162 bytes.
 
 # Algorithm
