@@ -57,3 +57,15 @@ A simple [Sudoku（数独）](https://en.wikipedia.org/wiki/Sudoku) solver in Ru
 ## Triplex
   - It's another branch-cutting operation.
   - In a block, if there are three unsolved candidates union to 3 numbers, e.g. "AB", "BC" and "ABC", then it means "ABC" is the only numbers in these 3 cells, so "ABC" can't be candidates of their common peers, then we can eliminate "ABC" from its common peers. Useful while met complex puzzles.
+
+# Benchmark
+  - `cargo +nightly bench`
+  ```
+  test easy          ... bench:       2,344 ns/iter (+/- 400)
+  test easy_3_ans    ... bench:       2,588 ns/iter (+/- 413)
+  test easy_arr      ... bench:       2,124 ns/iter (+/- 286)
+  test hard          ... bench:   1,024,807 ns/iter (+/- 84,857)
+  test hard_no_ans   ... bench:     381,048 ns/iter (+/- 34,324)
+  test huge_search   ... bench:      16,156 ns/iter (+/- 2,578)
+  test medium        ... bench:       8,551 ns/iter (+/- 506)
+  ```
