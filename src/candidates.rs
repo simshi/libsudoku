@@ -20,8 +20,9 @@ impl Candidates {
 	pub fn is_valid(&self) -> bool {
 		self.0 != 0
 	}
+	// not accurate because it could be invalid, but we won't go wrong in all usages
 	pub fn is_done(&self) -> bool {
-		// if only one bit is 1
+		// if only one bit is 1 or 0
 		(self.0 & (self.0 - 1)) == 0
 	}
 	pub fn len(&self) -> usize {
@@ -76,9 +77,10 @@ impl Iterator for Iter {
 use std::fmt::Write; // for `write_char`
 impl fmt::Display for Candidates {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		// it's possible self is invalid, but lucky() can handle it as 'X'
 		if self.is_done() {
 			f.write_char(self.lucky())?;
-		} else if self.is_valid() {
+		} else {
 			let mut v = 1i16;
 			for i in 1..=9 {
 				if (v & self.0) != 0 {
@@ -86,9 +88,8 @@ impl fmt::Display for Candidates {
 				}
 				v *= 2;
 			}
-		} else {
-			f.write_str("X")?;
 		}
+
 		Ok(())
 	}
 }
@@ -112,13 +113,32 @@ mod tests {
 	use super::*;
 
 	#[test]
-	fn basic() {
+	fn basic_default() {
 		let cs = Candidates::new();
 		assert_eq!("123456789", cs.to_string());
 		assert_eq!(true, cs.is_valid());
 		assert_eq!(false, cs.is_done());
 		assert_eq!(9, cs.len());
+		let a = cs
+			.iter()
+			.map(|c| c.to_string())
+			.collect::<Vec<_>>()
+			.join("");
+		assert_eq!("123456789", a);
 
+		let cs = Candidates::from('.');
+		assert_eq!("123456789", cs.to_string());
+		assert_eq!(9, cs.len());
+		let a = cs
+			.iter()
+			.map(|c| c.to_string())
+			.collect::<Vec<_>>()
+			.join("");
+		assert_eq!("123456789", a);
+	}
+
+	#[test]
+	fn basic_single() {
 		let cs = Candidates::from('5');
 		assert_eq!("5", cs.to_string());
 		assert_eq!(true, cs.is_valid());
@@ -130,50 +150,72 @@ mod tests {
 			.collect::<Vec<_>>()
 			.join("");
 		assert_eq!("5", a);
-
-		let mut cs = Candidates::from('.');
-		assert_eq!("123456789", cs.to_string());
-		assert_eq!(9, cs.len());
-
-		let p = cs.pop().unwrap();
-		assert_eq!("1", p.to_string());
-		assert_eq!('1', p.lucky());
-		let a = cs
-			.iter()
-			.map(|c| c.to_string())
-			.collect::<Vec<_>>()
-			.join("");
-		assert_eq!("23456789", a);
-	}
-
-	#[test]
-	fn substract() {
-		let mut cs = Candidates::new();
-		let mut cs2 = Candidates::new();
-		cs.substract(&cs2);
-		assert_eq!("X", cs.to_string());
-		assert_eq!(false, cs.is_valid());
-
-		let mut cs = Candidates::new();
-		cs2.pop();
-		cs.substract(&cs2);
-		assert_eq!("1", cs.to_string());
 	}
 
 	#[test]
 	fn pop() {
 		let mut cs = Candidates::new();
-		assert_eq!("1", cs.pop().unwrap().to_string());
-		assert_eq!("2", cs.pop().unwrap().to_string());
-		assert_eq!("3", cs.pop().unwrap().to_string());
-		assert_eq!("4", cs.pop().unwrap().to_string());
-		assert_eq!("5", cs.pop().unwrap().to_string());
-		assert_eq!("6", cs.pop().unwrap().to_string());
-		assert_eq!("7", cs.pop().unwrap().to_string());
-		assert_eq!("8", cs.pop().unwrap().to_string());
-		assert_eq!("9", cs.pop().unwrap().to_string());
+
+		assert_eq!('1', cs.pop().unwrap().lucky());
+		assert_eq!('2', cs.pop().unwrap().lucky());
+		assert_eq!('3', cs.pop().unwrap().lucky());
+		assert_eq!('4', cs.pop().unwrap().lucky());
+		assert_eq!('5', cs.pop().unwrap().lucky());
+		assert_eq!('6', cs.pop().unwrap().lucky());
+		assert_eq!('7', cs.pop().unwrap().lucky());
+		assert_eq!('8', cs.pop().unwrap().lucky());
+		assert_eq!('9', cs.pop().unwrap().lucky());
+
 		assert_eq!(None, cs.pop());
+		assert_eq!("X", cs.to_string());
+		assert_eq!('X', cs.lucky());
 
 		assert_eq!(false, cs.is_valid());
+		// we know it's not right, but it's OK after review all cases
+		assert_eq!(true, cs.is_done());
+	}
+
+	#[test]
+	fn union() {
+		let cs2 = Candidates::from('2');
+		let cs3 = Candidates::from('3');
+		let cs8 = Candidates::from('8');
+
+		let cs238 = Candidates::union(cs2, cs3, cs8);
+		assert_eq!("238", cs238.to_string());
+
+		let cs23 = Candidates::union(cs2, cs3, cs3);
+		assert_eq!("23", cs23.to_string());
+
+		let cs8 = Candidates::union(cs8, cs8, cs8);
+		assert_eq!("8", cs8.to_string());
+	}
+
+	#[test]
+	fn substract() {
+		let mut cs = Candidates::new();
+		let cs2 = Candidates::new();
+		cs.substract(&cs2);
+		assert_eq!("X", cs.to_string());
+		assert_eq!(false, cs.is_valid());
+
+		let cs3 = Candidates::from('3');
+		let cs4 = Candidates::from('4');
+		let cs8 = Candidates::from('8');
+
+		let cs348 = Candidates::union(cs3, cs4, cs8);
+		let mut cs = Candidates::new();
+		cs.substract(&cs348);
+		assert_eq!("125679", cs.to_string());
+
+		let cs38 = Candidates::union(cs3, cs3, cs8);
+		let mut cs = cs348;
+		cs.substract(&cs38);
+		assert_eq!("4", cs.to_string());
+		cs.substract(&cs3);
+		assert_eq!("4", cs.to_string());
+
+		cs.substract(&cs4);
+		assert_eq!("X", cs.to_string());
 	}
 }
