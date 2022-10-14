@@ -59,7 +59,7 @@ A simple [Sudoku（数独）](https://en.wikipedia.org/wiki/Sudoku) solver in Ru
   - In a block, if there are three unsolved candidates union to 3 numbers, e.g. "AB", "BC" and "ABC", then it means "ABC" is the only numbers in these 3 cells, so "ABC" can't be candidates of their common peers, then we can eliminate "ABC" from its common peers. Useful while met complex puzzles.
 
 # Benchmark
-  - `cargo +nightly bench`
+  - `cargo bench`
   ```
   test easy          ... bench:       2,344 ns/iter (+/- 400)
   test easy_3_ans    ... bench:       2,588 ns/iter (+/- 413)

@@ -14,5 +14,12 @@ path = "src/lib.rs"
 name = "sudoku"
 path = "src/main.rs"
 
+[[bench]]
+name = "ripple"
+harness = false
+
 [dependencies]
 clap = "~2.33.3"
+
+[dev-dependencies]
+criterion = { version = "0.4.0", features = ["html_reports"] }
